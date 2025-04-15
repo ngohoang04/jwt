@@ -1,112 +1,95 @@
 import bcrypt from "bcryptjs";
 import mysql from 'mysql2';
-const salt = bcrypt.genSaltSync(10);
-const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    database: 'testjwt',
-});
+import db from '../models/index.js'; // Đường dẫn đến file index.js trong thư mục models
 
-connection.connect((err) => {
-    if (err) {
-        console.error('Error connecting to the database:', err);
-        return;
-    }
-    console.log('Connected to the database!');
-})
+
+const salt = bcrypt.genSaltSync(10);
 
 const hashPassword = (password) => {
     return bcrypt.hashSync(password, salt);
 }
-const createNewUser = (email, pass, UserName) => {
-    return new Promise((resolve, reject) => {
-        let hash = hashPassword(pass);
-        connection.query(
-            'INSERT INTO users (email, password, user) VALUES (?, ?, ?)',
-            [email, hash, UserName],
-            (error, results) => {
-                if (error) {
-                    console.error('Error inserting data:', error);
-                    reject(error); // báo lỗi về cho controller xử lý
-                } else {
-                    console.log('Data inserted successfully:', results);
-                    resolve(results); // trả về kết quả thành công
-                }
-            }
-        );
-    });
+
+const createNewUser = async (email, pass, UserName) => {
+    const hash = hashPassword(pass);
+    try {
+        const newUser = await db.User.create({
+            user: UserName,
+            email: email,
+            password: hash
+        });
+        return newUser;
+    } catch (error) {
+        console.error('Error saving user:', error);
+        throw error; // Không cần Promise.reject(error) trong async
+    }
 };
 
 
-const getAllUsers = () => {
-    return new Promise((resolve, reject) => {
-        connection.query('SELECT * FROM users', (error, results) => {
-            if (error) {
-                console.error('Error fetching data:', error);
-                return reject(error);
-            }
-            resolve(results);
-        });
-    });
-}
-
-const deleteUser = (id) => {
-    return new Promise((resolve, reject) => {
-        connection.query('DELETE FROM users WHERE id = ?', [id], (error, results) => {
-            if (error) {
-                console.error('Error deleting data:', error);
-                return reject(error);
-            }
-            resolve(results);
-        });
-    });
-}
-
-const handleEditUser = (id) => {
-    return new Promise((resolve, reject) => {
-        connection.query('SELECT * FROM users WHERE id = ?', [id], (error, results) => {
-            if (error) {
-                console.error('Error fetching data:', error);
-                return reject(error);
-            }
-
-            // Nếu không tìm thấy user
-            if (results.length === 0) {
-                return reject(new Error('User not found'));
-            }
-
-            // Trả về user đầu tiên (vì id là duy nhất)
-            resolve(results[0]);
-        });
-    });
+const getAllUsers = async () => {
+    try {
+        const users = await db.User.findAll(); // Lấy tất cả user
+        return users;
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        throw error;
+    }
 };
 
-const updateUser = (id, email, pass, UserName) => {
-    return new Promise((resolve, reject) => {
-        // Kiểm tra nếu mật khẩu mới được cung cấp
-        let query = 'UPDATE users SET email = ?, user = ?';
-        let params = [email, UserName];
+const deleteUser = async (id) => {
+    try {
+        const result = await db.User.destroy({
+            where: { id: id }
+        });
 
-        // Nếu có mật khẩu mới, băm mật khẩu và cập nhật
-        if (pass) {
-            let hash = hashPassword(pass); // Mã hóa mật khẩu mới
-            query += ', password = ?'; // Thêm phần cập nhật mật khẩu vào câu lệnh SQL
-            params.push(hash);
+        // result là số bản ghi bị xóa (0 nếu không có bản ghi nào)
+        return result;
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+    }
+};
+
+const handleEditUser = async (id) => {
+    try {
+        const user = await db.User.findByPk(id); // Tìm theo khóa chính (primary key)
+
+        if (!user) {
+            throw new Error('User not found');
         }
 
-        query += ' WHERE id = ?';
-        params.push(id);
+        return user; // Trả về object user
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        throw error;
+    }
+};
 
-        // Thực thi câu lệnh cập nhật
-        connection.query(query, params, (error, results) => {
-            if (error) {
-                console.error('Error updating data:', error);
-                return reject(error);
-            }
-            resolve(results);
-        });
-    });
-}
+const updateUser = async (id, email, pass, UserName) => {
+    try {
+        const user = await db.User.findByPk(id); // Tìm user theo ID
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Cập nhật thông tin
+        user.email = email;
+        user.user = UserName;
+
+        if (pass) {
+            const hash = hashPassword(pass); // Mã hóa mật khẩu mới
+            user.password = hash;
+        }
+
+        await user.save(); // Lưu thay đổi vào DB
+
+        return { message: 'User updated successfully', user: user.toJSON() };
+    } catch (error) {
+        console.error('Error updating user:', error);
+        throw error;
+    }
+};
+
 
 
 module.exports = {
