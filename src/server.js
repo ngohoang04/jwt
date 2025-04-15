@@ -7,15 +7,15 @@ import configureViewEngine from './configs/viewEngine.js';
 const app = express();
 
 configureViewEngine(app);
-initWebRoutes(app);
 
 dotenv.config();
 
 const port = process.env.PORT || 8080;
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+initWebRoutes(app);
 app.listen(port, () => {
     console.log(`Server is running on localhost:${port}`);
 });
