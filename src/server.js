@@ -3,7 +3,7 @@ import bodyParser from 'body-parser';
 
 import dotenv from 'dotenv';
 import initWebRoutes from './routes/web.js';
-import configureViewEngine from './configs/viewEngine.js';
+import configureViewEngine from './config/viewEngine.js';
 const app = express();
 
 configureViewEngine(app);
