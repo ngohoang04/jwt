@@ -4,6 +4,8 @@ import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import initWebRoutes from './routes/web.js';
 import configureViewEngine from './config/viewEngine.js';
+import db from './config/connectDB.js';
+
 const app = express();
 
 configureViewEngine(app);
