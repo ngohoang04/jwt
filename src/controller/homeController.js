@@ -3,7 +3,7 @@ import userService from '../service/userService.js';
 const handleGetUser = (req, res) => {
     userService.getAllUsers()
         .then((data) => {
-            console.log(data);
+            // console.log(data);
             // Chỉ render sau khi có dữ liệu
             return res.render('home.ejs', { data: data });
         })
