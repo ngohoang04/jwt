@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import mysql from 'mysql2';
 import db from '../models/index.js'; // Đường dẫn đến file index.js trong thư mục models
 
 
